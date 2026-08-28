@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>奶茶审批局</title>
+    <style>
+        :root {
+            --bg: #f7f3ef; --card: #ffffff; --primary: #8b6f4e; --primary-light: #c4a882;
+            --primary-bg: #f0e6db; --text: #4a3f35; --text-secondary: #9a8b7a;
+            --success: #5a8f5a; --danger: #b85c5c; --border: #e8e0d7;
+            --shadow: 0 4px 20px rgba(74, 63, 53, 0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; padding-bottom: 40px; }
+        .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+        .header { text-align: center; padding: 28px 0 16px; }
+        .header h1 { font-size: 24px; color: var(--primary); letter-spacing: 1px; }
+        .header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .nav-tabs { display: flex; gap: 8px; margin-bottom: 16px; background: var(--card); padding: 6px; border-radius: 12px; box-shadow: var(--shadow); }
+        .nav-tab { flex: 1; text-align: center; padding: 10px; border-radius: 10px; font-size: 14px; color: var(--text-secondary); cursor: pointer; transition: all .2s; }
+        .nav-tab.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
+        .page { display: none; animation: fadeIn .3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; margin-bottom: 14px; }
+        .card-title { font-size: 15px; font-weight: 600; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+        .form-input, .form-textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; background: #fdfbfa; color: var(--text); outline: none; transition: border .2s; }
+        .form-input:focus, .form-textarea:focus { border-color: var(--primary-light); }
+        .form-textarea { min-height: 80px; resize: vertical; }
+        .price-input-wrap { position: relative; }
+        .price-input-wrap .form-input { padding-left: 32px; }
+        .price-input-wrap::before { content: "¥"; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 15px; }
+        .tea-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .tea-option { background: var(--primary-bg); border: 2px solid transparent; border-radius: 14px; padding: 12px 6px; text-align: center; cursor: pointer; transition: all .2s; }
+        .tea-option:hover { transform: translateY(-2px); }
+        .tea-option.selected { border-color: var(--primary); background: #fff8f0; }
+        .tea-option .emoji { font-size: 28px; display: block; margin-bottom: 4px; }
+        .tea-option .name { font-size: 12px; color: var(--text); font-weight: 500; }
+        .btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all .2s; text-align: center; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:active { transform: scale(0.98); background: #7a6143; }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .approval-card { background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; margin-bottom: 14px; cursor: pointer; transition: transform .2s; position: relative; overflow: hidden; }
+        .approval-card:active { transform: scale(0.99); }
+        .approval-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .approval-tag { display: inline-block; background: var(--primary-bg); color: var(--primary); font-size: 12px; padding: 4px 10px; border-radius: 8px; font-weight: 600; }
+        .approval-status { font-size: 12px; padding: 4px 10px; border-radius: 10px; font-weight: 600; }
+        .status-pending { background: #fff3e0; color: #e67e22; }
+        .status-pass { background: #e8f5e9; color: var(--success); }
+        .status-reject { background: #ffebee; color: var(--danger); }
+        .approval-no { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+        .approval-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .approval-price { font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+        .approval-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); }
+        .detail-status-stamp { position: absolute; top: 14px; right: 14px; border: 2px solid var(--primary-light); color: var(--primary); padding: 6px 14px; border-radius: 10px; font-size: 14px; font-weight: 700; transform: rotate(6deg); opacity: .9; }
+        .detail-status-stamp.pass { border-color: var(--success); color: var(--success); }
+        .detail-status-stamp.reject { border-color: var(--danger); color: var(--danger); }
+        .vote-waiting { display: flex; align-items: center; gap: 12px; background: #fdfbfa; border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin: 14px 0; }
+        .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--primary-bg); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .vote-waiting-text { flex: 1; }
+        .vote-waiting-text .main { font-weight: 600; font-size: 15px; }
+        .vote-waiting-text .sub { font-size: 13px; color: var(--text-secondary); }
+        .vote-box { background: #fdfbfa; border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 14px 0; }
+        .vote-box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .vote-box-title { font-weight: 700; font-size: 16px; }
+        .vote-count { font-size: 13px; color: var(--text-secondary); }
+        .vote-stats { display: flex; border-top: 1px solid var(--border); padding-top: 14px; }
+        .vote-stat { flex: 1; text-align: center; }
+        .vote-stat:first-child { border-right: 1px solid var(--border); }
+        .vote-stat .num { font-size: 26px; font-weight: 700; }
+        .vote-stat.pass .num { color: var(--success); }
+        .vote-stat.reject .num { color: var(--danger); }
+        .vote-stat .label { font-size: 13px; color: var(--text-secondary); }
+        .vote-empty { text-align: center; color: var(--text-secondary); font-size: 13px; padding: 10px 0; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+        .info-item { background: #fdfbfa; border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+        .info-item .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+        .info-item .value { font-size: 16px; font-weight: 700; }
+        .desc-box { background: #fdfbfa; border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin: 14px 0; min-height: 60px; }
+        .desc-box .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+        .desc-box .content { font-size: 15px; }
+        .vote-list { margin-top: 10px; }
+        .vote-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .vote-item:last-child { border-bottom: none; }
+        .vote-user { display: flex; align-items: center; gap: 10px; }
+        .vote-user-name { font-weight: 500; }
+        .vote-user-time { font-size: 12px; color: var(--text-secondary); }
+        .vote-badge { padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+        .vote-badge.pass { background: #e8f5e9; color: var(--success); }
+        .vote-badge.reject { background: #ffebee; color: var(--danger); }
+        .vote-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+        .share-tip { background: var(--primary-bg); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+        .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+        .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(74, 63, 53, 0.92); color: #fff; padding: 12px 24px; border-radius: 24px; font-size: 14px; opacity: 0; transition: all .3s; z-index: 100; white-space: nowrap; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .back-link { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 14px; margin-bottom: 12px; cursor: pointer; }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--card); border-radius: 18px; padding: 24px; width: 100%; max-width: 360px; text-align: center; }
+        .modal-content h3 { margin-bottom: 8px; }
+        .modal-content p { color: var(--text-secondary); font-size: 14px; margin-bottom: 18px; }
+        .modal-actions { display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧋 奶茶审批局</h1>
+            <p>喝什么奶茶，让朋友们说了算</p>
+        </div>
+
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-page="create">发起审批</div>
+            <div class="nav-tab" data-page="list">我的审批</div>
+        </div>
+
+        <!-- 发起审批 -->
+        <div class="page active" id="page-create">
+            <div class="card">
+                <div class="card-title">🥤 想喝的奶茶品牌</div>
+                <div class="tea-options" id="teaOptions">
+                    <div class="tea-option selected" data-name="喜茶" data-price="22"><span class="emoji">🍵</span><span class="name">喜茶</span></div>
+                    <div class="tea-option" data-name="奈雪的茶" data-price="25"><span class="emoji">🍓</span><span class="name">奈雪的茶</span></div>
+                    <div class="tea-option" data-name="蜜雪冰城" data-price="6"><span class="emoji">🍦</span><span class="name">蜜雪冰城</span></div>
+                    <div class="tea-option" data-name="茶百道" data-price="16"><span class="emoji">🧋</span><span class="name">茶百道</span></div>
+                    <div class="tea-option" data-name="古茗" data-price="14"><span class="emoji">🌿</span><span class="name">古茗</span></div>
+                    <div class="tea-option" data-name="霸王茶姬" data-price="18"><span class="emoji">👑</span><span class="name">霸王茶姬</span></div>
+                    <div class="tea-option" data-name="一点点" data-price="15"><span class="emoji">🫧</span><span class="name">一点点</span></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">品牌 / 奶茶名称</label>
+                    <input type="text" class="form-input" id="teaName" value="喜茶" placeholder="例如：霸王茶姬">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">价格</label>
+                    <div class="price-input-wrap"><input type="number" class="form-input" id="teaPrice" value="22" placeholder="0"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">申请人昵称</label>
+                    <input type="text" class="form-input" id="applicantName" placeholder="你的名字">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">申请说明（选填）</label>
+                    <textarea class="form-textarea" id="reason" placeholder="说说为什么要喝这杯奶茶..."></textarea>
+                </div>
+                <button class="btn btn-primary" id="submitBtn">生成审批单</button>
+            </div>
+        </div>
+
+        <!-- 审批列表 -->
+        <div class="page" id="page-list">
+            <div id="approvalList"></div>
+        </div>
+
+        <!-- 审批详情 -->
+        <div class="page" id="page-detail">
+            <div class="back-link" id="backToList">← 返回列表</div>
+            <div class="share-tip">💡 点「复制链接」发给朋友，他们打开就能投票</div>
+            <div class="approval-card" id="detailCard">
+                <div class="detail-status-stamp" id="detailStamp">进行中</div>
+                <span class="approval-tag">想喝的东西</span>
+                <div class="approval-no" id="detailNo">OA-20260827-XXXX</div>
+                <div class="approval-title" id="detailTitle">喝不喝奶茶</div>
+                <div class="approval-price" id="detailPrice">¥20</div>
+                <div class="vote-waiting">
+                    <div class="avatar" id="applicantAvatar">🙋</div>
+                    <div class="vote-waiting-text">
+                        <div class="main" id="waitingText">等待群聊好友参与审批</div>
+                        <div class="sub" id="waitingSub">申请人是我 · 0 人已参与</div>
+                    </div>
+                </div>
+                <div class="vote-box">
+                    <div class="vote-box-header">
+                        <span class="vote-box-title">多人审批</span>
+                        <span class="vote-count" id="voteCount">0 人已参与 · 状态随多数变化</span>
+                    </div>
+                    <div class="vote-stats">
+                        <div class="vote-stat pass"><div class="num" id="passCount">0</div><div class="label">通过</div></div>
+                        <div class="vote-stat reject"><div class="num" id="rejectCount">0</div><div class="label">未通过</div></div>
+                    </div>
+                    <div class="vote-empty" id="voteEmpty">还没有好友打开这张审批</div>
+                    <div class="vote-list" id="voteList"></div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item"><div class="label">申请人</div><div class="value" id="detailApplicant">-</div></div>
+                    <div class="info-item"><div class="label">审批人</div><div class="value">群聊参与者</div></div>
+                </div>
+                <div class="desc-box">
+                    <div class="label">申请说明</div>
+                    <div class="content" id="detailReason">-</div>
+                </div>
+                <div class="vote-actions" id="voteActions">
+                    <button class="btn btn-danger" id="rejectBtn">未通过</button>
+                    <button class="btn btn-success" id="passBtn">通过</button>
+                </div>
+                <button class="btn btn-primary" id="shareBtn" style="margin-top:12px;">📤 复制链接发给朋友</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="modal" id="voteModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">参与审批</h3>
+            <p>请输入你的名字（不填则匿名）</p>
+            <input type="text" class="form-input" id="voterName" placeholder="你的名字">
+            <div class="modal-actions" style="margin-top: 16px;">
+                <button class="btn btn-outline" id="modalCancel">取消</button>
+                <button class="btn btn-primary" id="modalConfirm">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentId = null;
+        let currentItem = null;
+        let pendingVoteType = null;
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2200);
+        }
+        function timeAgo(ts) {
+            if (!ts) return '';
+            const diff = Math.floor((Date.now() - ts) / 1000);
+            if (diff < 60) return '刚刚';
+            if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+            if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+            return Math.floor(diff / 86400) + ' 天前';
+        }
+        function renderStatus(status) {
+            if (status === 'pass') return '<span class="approval-status status-pass">已通过</span>';
+            if (status === 'reject') return '<span class="approval-status status-reject">未通过</span>';
+            return '<span class="approval-status status-pending">进行中</span>';
+        }
+        function switchPage(name) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('page-' + name).classList.add('active');
+            const tab = document.querySelector('.nav-tab[data-page="' + name + '"]');
+            if (tab) tab.classList.add('active');
+        }
+
+        async function api(path, method, body) {
+            const opt = { method, headers: { 'Content-Type': 'application/json' } };
+            if (body) opt.body = JSON.stringify(body);
+            const r = await fetch(path, opt);
+            if (!r.ok) throw new Error('请求失败');
+            return r.json();
+        }
+
+        async function renderList() {
+            const list = document.getElementById('approvalList');
+            list.innerHTML = '<div class="empty-state"><p>加载中...</p></div>';
+            try {
+                const items = await api('/api/approvals', 'GET');
+                if (!items.length) {
+                    list.innerHTML = '<div class="empty-state"><div class="emoji">🍵</div><p>还没有审批单<br>快去发起一杯奶茶吧</p></div>';
+                    return;
+                }
+                list.innerHTML = items.map(item =>
+                    '<div class="approval-card" data-id="' + item._id + '">' +
+                        '<div class="approval-header"><span class="approval-tag">想喝的东西</span>' + renderStatus(item.status) + '</div>' +
+                        '<div class="approval-no">' + item.no + '</div>' +
+                        '<div class="approval-title">' + item.title + '</div>' +
+                        '<div class="approval-price">¥' + item.price + '</div>' +
+                        '<div class="approval-meta"><span>申请人：' + (item.applicant || '匿名') + '</span><span>' + timeAgo(item.createdAt) + ' · ' + item.votes.length + '人参与</span></div>' +
+                    '</div>'
+                ).join('');
+                list.querySelectorAll('.approval-card').forEach(c => c.addEventListener('click', () => openDetail(c.dataset.id)));
+            } catch (e) {
+                list.innerHTML = '<div class="empty-state"><p>加载失败，请确认服务已启动</p></div>';
+            }
+        }
+
+        async function openDetail(id) {
+            currentId = id;
+            try {
+                const item = await api('/api/approvals/' + id, 'GET');
+                renderDetail(item);
+                switchPage('detail');
+                history.replaceState(null, '', '?id=' + id);
+            } catch (e) { showToast('加载审批单失败'); }
+        }
+
+        function renderDetail(item) {
+            currentItem = item;
+            const pass = (item.votes || []).filter(v => v.type === 'pass').length;
+            const reject = (item.votes || []).filter(v => v.type === 'reject').length;
+            document.getElementById('detailNo').textContent = item.no;
+            document.getElementById('detailTitle').textContent = item.title;
+            document.getElementById('detailPrice').textContent = '¥' + item.price;
+            document.getElementById('detailApplicant').textContent = item.applicant || '匿名';
+            document.getElementById('detailReason').textContent = item.reason || '（无说明）';
+            document.getElementById('applicantAvatar').textContent = '👤';
+            document.getElementById('waitingSub').textContent = '申请人是' + (item.applicant || '我') + ' · ' + item.votes.length + ' 人已参与';
+            document.getElementById('voteCount').textContent = item.votes.length + ' 人已参与 · 状态随多数变化';
+            document.getElementById('passCount').textContent = pass;
+            document.getElementById('rejectCount').textContent = reject;
+            const stamp = document.getElementById('detailStamp');
+            stamp.className = 'detail-status-stamp';
+            if (item.status === 'pass') { stamp.textContent = '已通过'; stamp.classList.add('pass'); }
+            else if (item.status === 'reject') { stamp.textContent = '未通过'; stamp.classList.add('reject'); }
+            else { stamp.textContent = '进行中'; }
+            const empty = document.getElementById('voteEmpty');
+            const vlist = document.getElementById('voteList');
+            if (item.votes.length === 0) { empty.style.display = 'block'; vlist.innerHTML = ''; }
+            else {
+                empty.style.display = 'none';
+                vlist.innerHTML = item.votes.slice().reverse().map(v =>
+                    '<div class="vote-item"><div class="vote-user"><div class="avatar" style="width:34px;height:34px;font-size:16px;">🙂</div>' +
+                    '<div><div class="vote-user-name">' + (v.name || '匿名好友') + '</div><div class="vote-user-time">' + timeAgo(v.ts) + '</div></div></div>' +
+                    '<span class="vote-badge ' + v.type + '">' + (v.type === 'pass' ? '通过' : '未通过') + '</span></div>'
+                ).join('');
+            }
+            const actions = document.getElementById('voteActions');
+            actions.innerHTML = '<button class="btn btn-danger" id="rejectBtn">未通过</button><button class="btn btn-success" id="passBtn">通过</button>';
+            document.getElementById('rejectBtn').addEventListener('click', () => showVoteModal('reject'));
+            document.getElementById('passBtn').addEventListener('click', () => showVoteModal('pass'));
+        }
+
+        function showVoteModal(type) {
+            pendingVoteType = type;
+            document.getElementById('modalTitle').textContent = type === 'pass' ? '✅ 通过这杯奶茶' : '❌ 不通过这杯奶茶';
+            document.getElementById('voteModal').classList.add('active');
+            document.getElementById('voterName').focus();
+        }
+        function closeVoteModal() {
+            document.getElementById('voteModal').classList.remove('active');
+            document.getElementById('voterName').value = '';
+            pendingVoteType = null;
+        }
+        async function submitVote() {
+            if (!currentItem || !pendingVoteType) return;
+            const name = document.getElementById('voterName').value.trim();
+            try {
+                const item = await api('/api/approvals/' + currentId + '/vote', 'POST', { type: pendingVoteType, name });
+                closeVoteModal();
+                showToast('投票成功！');
+                renderDetail(item);
+            } catch (e) { showToast('投票失败，请重试'); }
+        }
+        function copyShareLink() {
+            const url = location.origin + location.pathname + '?id=' + currentId;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => showToast('链接已复制，发群里吧')).catch(() => showToast('复制失败，请手动复制：' + url));
+            } else { showToast('请手动复制地址栏链接'); }
+        }
+
+        // 事件
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                if (tab.dataset.page === 'list') renderList();
+                switchPage(tab.dataset.page);
+                if (tab.dataset.page !== 'detail') history.replaceState(null, '', location.pathname);
+            });
+        });
+        document.querySelectorAll('.tea-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.tea-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                document.getElementById('teaName').value = opt.dataset.name;
+                document.getElementById('teaPrice').value = opt.dataset.price;
+            });
+        });
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            const title = document.getElementById('teaName').value.trim() || '奶茶';
+            const price = parseFloat(document.getElementById('teaPrice').value) || 0;
+            const applicant = document.getElementById('applicantName').value.trim();
+            const reason = document.getElementById('reason').value.trim();
+            if (!applicant) { showToast('请输入申请人昵称'); return; }
+            try {
+                const item = await api('/api/approvals', 'POST', { title: '喝不喝' + title, price, applicant, reason });
+                document.getElementById('teaName').value = '喜茶';
+                document.getElementById('teaPrice').value = '22';
+                document.getElementById('reason').value = '';
+                document.querySelectorAll('.tea-option').forEach(o => o.classList.remove('selected'));
+                document.querySelector('.tea-option[data-name="喜茶"]').classList.add('selected');
+                openDetail(item._id);
+                showToast('审批单已生成，去分享给朋友！');
+            } catch (e) { showToast('生成失败，请确认服务已启动'); }
+        });
+        document.getElementById('backToList').addEventListener('click', () => { renderList(); switchPage('list'); history.replaceState(null, '', location.pathname); });
+        document.getElementById('modalCancel').addEventListener('click', closeVoteModal);
+        document.getElementById('modalConfirm').addEventListener('click', submitVote);
+        document.getElementById('voterName').addEventListener('keydown', e => { if (e.key === 'Enter') submitVote(); });
+        document.getElementById('shareBtn').addEventListener('click', copyShareLink);
+
+        // 启动
+        (async () => {
+            const params = new URLSearchParams(location.search);
+            const idFromUrl = params.get('id');
+            if (idFromUrl) { openDetail(idFromUrl); } else { switchPage('create'); }
+        })();
+    </script>
+</body>
+</html>
