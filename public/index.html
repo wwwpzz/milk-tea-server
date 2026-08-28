@@ -89,6 +89,7 @@
         .vote-item:last-child { border-bottom: none; }
         .vote-user { display: flex; align-items: center; gap: 10px; }
         .vote-user-name { font-weight: 500; }
+        .vote-user-comment { font-size: 13px; color: var(--text); margin-top: 2px; background: var(--primary-bg); border-radius: 8px; padding: 4px 8px; max-width: 200px; }
         .vote-user-time { font-size: 12px; color: var(--text-secondary); }
         .vote-badge { padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; }
         .vote-badge.pass { background: #e8f5e9; color: var(--success); }
@@ -133,6 +134,7 @@
                     <div class="tea-option" data-name="古茗" data-price="14"><span class="emoji">🌿</span><span class="name">古茗</span></div>
                     <div class="tea-option" data-name="霸王茶姬" data-price="18"><span class="emoji">👑</span><span class="name">霸王茶姬</span></div>
                     <div class="tea-option" data-name="一点点" data-price="15"><span class="emoji">🫧</span><span class="name">一点点</span></div>
+                    <div class="tea-option" data-custom="true" data-name="" data-price="0"><span class="emoji">✏️</span><span class="name">自定义</span></div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">品牌 / 奶茶名称</label>
@@ -212,6 +214,7 @@
             <h3 id="modalTitle">参与审批</h3>
             <p>请输入你的名字（不填则匿名）</p>
             <input type="text" class="form-input" id="voterName" placeholder="你的名字">
+            <textarea class="form-textarea" id="voterComment" placeholder="写句评语（选填）" style="margin-top: 12px;"></textarea>
             <div class="modal-actions" style="margin-top: 16px;">
                 <button class="btn btn-outline" id="modalCancel">取消</button>
                 <button class="btn btn-primary" id="modalConfirm">确认</button>
@@ -236,6 +239,9 @@
             if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
             if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
             return Math.floor(diff / 86400) + ' 天前';
+        }
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
         function renderStatus(status) {
             if (status === 'pass') return '<span class="approval-status status-pass">已通过</span>';
@@ -271,9 +277,9 @@
                     '<div class="approval-card" data-id="' + item._id + '">' +
                         '<div class="approval-header"><span class="approval-tag">想喝的东西</span>' + renderStatus(item.status) + '</div>' +
                         '<div class="approval-no">' + item.no + '</div>' +
-                        '<div class="approval-title">' + item.title + '</div>' +
+                        '<div class="approval-title">' + esc(item.title) + '</div>' +
                         '<div class="approval-price">¥' + item.price + '</div>' +
-                        '<div class="approval-meta"><span>申请人：' + (item.applicant || '匿名') + '</span><span>' + timeAgo(item.createdAt) + ' · ' + item.votes.length + '人参与</span></div>' +
+                        '<div class="approval-meta"><span>申请人：' + esc(item.applicant || '匿名') + '</span><span>' + timeAgo(item.createdAt) + ' · ' + item.votes.length + '人参与</span></div>' +
                     '</div>'
                 ).join('');
                 list.querySelectorAll('.approval-card').forEach(c => c.addEventListener('click', () => openDetail(c.dataset.id)));
@@ -316,11 +322,12 @@
             if (item.votes.length === 0) { empty.style.display = 'block'; vlist.innerHTML = ''; }
             else {
                 empty.style.display = 'none';
-                vlist.innerHTML = item.votes.slice().reverse().map(v =>
-                    '<div class="vote-item"><div class="vote-user"><div class="avatar" style="width:34px;height:34px;font-size:16px;">🙂</div>' +
-                    '<div><div class="vote-user-name">' + (v.name || '匿名好友') + '</div><div class="vote-user-time">' + timeAgo(v.ts) + '</div></div></div>' +
-                    '<span class="vote-badge ' + v.type + '">' + (v.type === 'pass' ? '通过' : '未通过') + '</span></div>'
-                ).join('');
+                vlist.innerHTML = item.votes.slice().reverse().map(v => {
+                    const c = v.comment ? '<div class="vote-user-comment">' + esc(v.comment) + '</div>' : '';
+                    return '<div class="vote-item"><div class="vote-user"><div class="avatar" style="width:34px;height:34px;font-size:16px;">🙂</div>' +
+                    '<div><div class="vote-user-name">' + esc(v.name || '匿名好友') + '</div>' + c + '<div class="vote-user-time">' + timeAgo(v.ts) + '</div></div></div>' +
+                    '<span class="vote-badge ' + v.type + '">' + (v.type === 'pass' ? '通过' : '未通过') + '</span></div>';
+                }).join('');
             }
             const actions = document.getElementById('voteActions');
             actions.innerHTML = '<button class="btn btn-danger" id="rejectBtn">未通过</button><button class="btn btn-success" id="passBtn">通过</button>';
@@ -337,13 +344,15 @@
         function closeVoteModal() {
             document.getElementById('voteModal').classList.remove('active');
             document.getElementById('voterName').value = '';
+            document.getElementById('voterComment').value = '';
             pendingVoteType = null;
         }
         async function submitVote() {
             if (!currentItem || !pendingVoteType) return;
             const name = document.getElementById('voterName').value.trim();
+            const comment = document.getElementById('voterComment').value.trim();
             try {
-                const item = await api('/api/approvals/' + currentId + '/vote', 'POST', { type: pendingVoteType, name });
+                const item = await api('/api/approvals/' + currentId + '/vote', 'POST', { type: pendingVoteType, name, comment });
                 closeVoteModal();
                 showToast('投票成功！');
                 renderDetail(item);
@@ -368,8 +377,16 @@
             opt.addEventListener('click', () => {
                 document.querySelectorAll('.tea-option').forEach(o => o.classList.remove('selected'));
                 opt.classList.add('selected');
-                document.getElementById('teaName').value = opt.dataset.name;
-                document.getElementById('teaPrice').value = opt.dataset.price;
+                const nameInput = document.getElementById('teaName');
+                const priceInput = document.getElementById('teaPrice');
+                if (opt.dataset.custom) {
+                    nameInput.value = '';
+                    priceInput.value = '';
+                    nameInput.focus();
+                } else {
+                    nameInput.value = opt.dataset.name;
+                    priceInput.value = opt.dataset.price;
+                }
             });
         });
         document.getElementById('submitBtn').addEventListener('click', async () => {

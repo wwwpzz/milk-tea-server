@@ -113,8 +113,9 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req);
         if (b.type !== 'pass' && b.type !== 'reject') return sendJSON(res, 400, { error: '投票类型错误' });
         const name = (b.name || '').trim();
+        const comment = (b.comment || '').trim();
         const votes = (item.votes || []).filter(v => !(name && v.name === name)); // 同名覆盖上次票
-        votes.push({ type: b.type, name, ts: Date.now() });
+        votes.push({ type: b.type, name, comment, ts: Date.now() });
         item.votes = votes;
         db.items[id] = item;
         saveDB(db);
